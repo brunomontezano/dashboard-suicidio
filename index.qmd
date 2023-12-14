@@ -188,10 +188,22 @@ plotly::plot_ly(
     x = ~ faixa_etaria,
     y = ~ sexo,
     z = ~ taxa_especifica,
-    type = "heatmap"
+    type = "heatmap",
+    colorbar = list(title = "Taxa de suicídio específica"),
+    hoverinfo = "text",
+    text = ~ paste0("<b>Local:</b> ",
+                    local,
+                    "<br> <b>Ano:</b> ",
+                    ano,
+                    "<br> <b>Faixa etária</b> ",
+                    faixa_etaria,
+                    "<br> <b>Sexo</b> ",
+                    sexo,
+                    "<br> <b>Taxa Específica (por 100 mil):</b> ",
+                    taxa_especifica
+    )
 ) |>
     plotly::layout(
-        legend = list(title = list(text = "<b>Taxa específica (por 100 mil)</b>")),
         yaxis = list(
             title = "Sexo",
             titlefont = list(size = 15)),
