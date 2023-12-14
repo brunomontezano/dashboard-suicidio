@@ -10,7 +10,6 @@ theme: minty
 server: shiny
 ---
 
-
 ```{r carregar-dados-e-paleta}
 #| context: setup
 df <- readr::read_csv("./data/txs_suicidio.csv", show_col_types = FALSE) |>
@@ -115,6 +114,14 @@ shiny::selectInput(
 plotly::plotlyOutput("plot_calor")
 ```
 
+# Trajetória das taxas por estado
+
+## Trajetória das taxas padronizadas de suicídio por estado (2000-2021)
+
+```{r plotar-animacao-estado}
+plotly::plotlyOutput("plot_animacao_estados")
+```
+
 ```{r criar-visualizacoes}
 #| context: server
 dataset_ano <- shiny::reactive({
@@ -214,4 +221,33 @@ plotly::plot_ly(
     )
 })
 
+output$plot_animacao_estados <- plotly::renderPlotly({
+plotly::plot_ly(
+    df_estados,
+    x = ~ uf,
+    y = ~ taxa_padronizada,
+    frame = ~ ano,
+    type = "bar",
+    hoverinfo = "text",
+    text = ~ paste0("<b>UF:</b> ",
+                    name_state,
+                    "<br> <b>Ano:</b> ",
+                    ano,
+                    "<br> <b>Taxa Padronizada (por 100 mil):</b> ",
+                    taxa_padronizada
+    )
+) |>
+    plotly::animation_slider(
+        currentvalue = list(prefix = "Taxas em: ", font = list(color = "black"))
+  ) |>
+    plotly::layout(
+        yaxis = list(
+            title = "Taxa padronizada de suicídios (por 100 mil habitantes)",
+            titlefont = list(size = 15)),
+        xaxis = list(
+            title = "Estado",
+            titlefont = list(size = 15)
+        )
+    )
+})
 ```
