@@ -1,0 +1,205 @@
+---
+title: "Taxas de suicídio no Brasil: painel de dados"
+lang: pt-br
+author:
+    name: "Bruno Braga Montezano"
+    orcid: 0000-0002-1825-0097
+    affiliation: "UFRGS"
+format: dashboard
+theme: minty
+server: shiny
+---
+
+
+```{r carregar-dados-e-paleta}
+#| context: setup
+df <- readr::read_csv("./data/txs_suicidio.csv", show_col_types = FALSE) |>
+    janitor::clean_names()
+
+sf_estados <- readr::read_csv(
+    "./data/localizacao_estados.csv",
+    show_col_types = FALSE
+)
+
+df_padronizada <- df |>
+    dplyr::group_by(local, ano) |>
+    dplyr::slice_head(n = 1) |>
+    dplyr::ungroup() |>
+    dplyr::select(ano, local, taxa_bruta, taxa_padronizada) |>
+    dplyr::mutate(texto = glue::glue(
+        "<b>Local:</b> {local}\n<b>Ano:</b> {ano}\n<b>Taxa:</b> {sprintf('%.2f', {taxa_padronizada})}")
+    )
+
+df_estados <- df |>
+    dplyr::filter(tipo_local == "UF") |>
+    dplyr::group_by(local, ano) |>
+    dplyr::slice(1) |>
+    dplyr::ungroup() |>
+    dplyr::select(uf = local, ano, taxa_bruta, taxa_padronizada) |>
+    dplyr::left_join(
+        sf_estados |> dplyr::select(abbrev_state, name_state, lon, lat),
+        by = dplyr::join_by(uf == abbrev_state)
+    )
+
+paleta <- leaflet::colorNumeric(
+    palette = "PuBu",
+    domain = df_estados$taxa_padronizada
+)
+```
+
+
+# Séries temporais
+
+## {.sidebar}
+
+```{r selecionar-local}
+shiny::checkboxGroupInput(
+    "local_filtro",
+    "Local", 
+    choices = unique(df$local),
+    selected = "Brasil"
+)
+```
+
+## Série temporal de taxas padronizadas de suicídio (por 100 mil habitantes)
+
+```{r plotar-series}
+#| title: Série temporal de taxas padronizadas de suicídio (por 100 mil habitantes)
+plotly::plotlyOutput("plot_series")
+```
+
+# Mapa por estados
+
+## {.sidebar}
+
+```{r selecionar-ano-estados}
+shiny::selectInput(
+    "ano_filtro_mapa",
+    "Ano", 
+    choices = 2000:2021,
+    selected = 2000
+)
+```
+
+## Taxa padronizada de suicídio por estado (por 100 mil habitantes)
+
+```{r plotar-mapa-estados}
+#| title: Taxa padronizada de suicídio por estado (por 100 mil habitantes)
+leaflet::leafletOutput("mapa_estados")
+```
+
+# Mapas de calor
+
+## {.sidebar}
+
+```{r selecionar-ano-local-heatmap}
+shiny::selectInput(
+    "ano_filtro_heatmap",
+    "Ano", 
+    choices = 2000:2021,
+    selected = 2000
+)
+
+shiny::selectInput(
+    "local_filtro_heatmap",
+    "Local", 
+    choices = unique(df$local),
+    selected = "Brasil"
+)
+```
+
+## Mapa de calor de taxas padronizadas de suicídio por idade e sexo
+
+```{r plotar-calor}
+#| title: Mapa de calor de taxas padronizadas de suicídio por idade e sexo (por 100 mil habitantes)
+plotly::plotlyOutput("plot_calor")
+```
+
+```{r criar-visualizacoes}
+#| context: server
+dataset_ano <- shiny::reactive({
+  df_estados[df_estados$ano == input$ano_filtro_mapa, ]
+})
+
+dataset_local <- shiny::reactive({
+  df_padronizada[df_padronizada$local %in% input$local_filtro, ]
+})
+
+dataset_calor <- shiny::reactive({
+  df[df$local == input$local_filtro_heatmap & df$ano == input$ano_filtro_heatmap, ]
+})
+
+output$plot_series <- plotly::renderPlotly({
+plotly::plot_ly(
+    dataset_local(),
+    x = ~ ano,
+    y = ~ taxa_padronizada,
+    text = ~ texto,
+    hoverinfo = "text",
+    type = "scatter",
+    mode = "markers+lines",
+    color = ~ local,
+    colors = "Set2",
+    marker = list(size = 10),
+    line = list(width = 5)
+) |>
+    plotly::layout(
+        yaxis = list(
+            title = "Taxa padronizada de suicídios (por 100 mil habitantes)",
+            titlefont = list(size = 15)
+        ),
+        xaxis = list(
+            title = "Ano",
+            titlefont = list(size = 15),
+            tickvals = as.list(2000:2021),
+            tickmode = "array"
+        )
+    )
+})
+
+output$mapa_estados <- leaflet::renderLeaflet({
+    leaflet::leaflet(dataset_ano()) |>
+        leaflet::setView(lat = -15.178, lng = -56.777, zoom = 4) |>
+        leaflet::addTiles() |>
+        leaflet::addCircleMarkers(
+            lng = ~ lon,
+            lat = ~ lat,
+            fillOpacity = 0.7,
+            color = ~ paleta(taxa_padronizada),
+            radius = ~ sqrt(taxa_padronizada) * 6,
+            popup = ~ paste("<b>Estado:</b> ",
+                            name_state,
+                            "<br> <b>Ano:</b> ",
+                            ano,
+                            "<br> <b>Taxa Padronizada (por 100 mil):</b> ",
+                            taxa_padronizada
+            )
+        ) |>
+        leaflet::addLabelOnlyMarkers(
+        ~lon, ~lat,
+        label = ~ as.character(glue::glue("{sprintf('%.2f', {taxa_padronizada})}")),
+        labelOptions = leaflet::labelOptions(noHide = TRUE, textOnly = TRUE, direction = "center")
+      )
+})
+
+output$plot_calor <- plotly::renderPlotly({
+plotly::plot_ly(
+    dataset_calor(),
+    x = ~ faixa_etaria,
+    y = ~ sexo,
+    z = ~ taxa_especifica,
+    type = "heatmap"
+) |>
+    plotly::layout(
+        legend = list(title = list(text = "<b>Taxa específica (por 100 mil)</b>")),
+        yaxis = list(
+            title = "Sexo",
+            titlefont = list(size = 15)),
+        xaxis = list(
+            title = "Faixa etária",
+            titlefont = list(size = 15)
+        )
+    )
+})
+
+```
