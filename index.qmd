@@ -6,7 +6,7 @@ author:
     orcid: 0000-0002-1825-0097
     affiliation: "UFRGS"
 format: dashboard
-theme: minty
+theme: zephyr
 server: shiny
 ---
 
