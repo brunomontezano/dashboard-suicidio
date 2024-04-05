@@ -12,6 +12,7 @@ server: shiny
 
 ```{r carregar-dados-e-paleta}
 #| context: setup
+#| include: false
 df <- readr::read_csv("./data/txs_suicidio.csv", show_col_types = FALSE) |>
     janitor::clean_names()
 
@@ -49,9 +50,8 @@ paleta <- leaflet::colorNumeric(
 
 # Séries temporais
 
-## {.sidebar}
-
 ```{r selecionar-local}
+#| content: card-sidebar
 shiny::checkboxGroupInput(
     "local_filtro",
     "Local", 
@@ -60,8 +60,6 @@ shiny::checkboxGroupInput(
 )
 ```
 
-## Série temporal de taxas padronizadas de suicídio (por 100 mil habitantes)
-
 ```{r plotar-series}
 #| title: Série temporal de taxas padronizadas de suicídio (por 100 mil habitantes)
 plotly::plotlyOutput("plot_series")
@@ -69,9 +67,8 @@ plotly::plotlyOutput("plot_series")
 
 # Mapa por estados
 
-## {.sidebar}
-
 ```{r selecionar-ano-estados}
+#| content: card-sidebar
 shiny::selectInput(
     "ano_filtro_mapa",
     "Ano", 
@@ -80,8 +77,6 @@ shiny::selectInput(
 )
 ```
 
-## Taxa padronizada de suicídio por estado (por 100 mil habitantes)
-
 ```{r plotar-mapa-estados}
 #| title: Taxa padronizada de suicídio por estado (por 100 mil habitantes)
 leaflet::leafletOutput("mapa_estados")
@@ -89,9 +84,8 @@ leaflet::leafletOutput("mapa_estados")
 
 # Mapas de calor
 
-## {.sidebar}
-
 ```{r selecionar-ano-local-heatmap}
+#| content: card-sidebar
 shiny::selectInput(
     "ano_filtro_heatmap",
     "Ano", 
@@ -107,8 +101,6 @@ shiny::selectInput(
 )
 ```
 
-## Mapa de calor de taxas padronizadas de suicídio por idade e sexo
-
 ```{r plotar-calor}
 #| title: Mapa de calor de taxas padronizadas de suicídio por idade e sexo (por 100 mil habitantes)
 plotly::plotlyOutput("plot_calor")
@@ -116,14 +108,14 @@ plotly::plotlyOutput("plot_calor")
 
 # Trajetória das taxas por estado
 
-## Trajetória das taxas padronizadas de suicídio por estado (2000-2021)
-
 ```{r plotar-animacao-estado}
+#| title: Trajetória das taxas padronizadas de suicídio por estado (2000-2021)
 plotly::plotlyOutput("plot_animacao_estados")
 ```
 
 ```{r criar-visualizacoes}
 #| context: server
+#| include: false
 dataset_ano <- shiny::reactive({
   df_estados[df_estados$ano == input$ano_filtro_mapa, ]
 })
