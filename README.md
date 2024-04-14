@@ -1,5 +1,7 @@
 # Taxas de suicídio no Brasil: painel de dados <a href='https://github.com/brunomontezano/dashboard-suicidio/'><img src='assets/dashboard.webp' align="right" height="139" /></a>
 
+[![DOI](https://zenodo.org/badge/731378619.svg)](https://zenodo.org/doi/10.5281/zenodo.10970886)
+
 O dashboard foi construído pelo pesquisador Bruno Braga Montezano a partir de
 dados pré-processados pela [Plataforma de Ciência de Dados aplicada à
 Saúde](https://pcdas.icict.fiocruz.br/), vinculada à Fundação Oswaldo Cruz.
